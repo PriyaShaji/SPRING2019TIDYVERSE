@@ -1,6 +1,6 @@
 Part 1 : https://rpubs.com/Priya_Shaji/tidyverse
 
-Part 2: 
+Part 2: http://rpubs.com/Priya_Shaji/tidyverse2
 
 Github Link : https://github.com/PriyaShaji/SPRING2019TIDYVERSE
 
