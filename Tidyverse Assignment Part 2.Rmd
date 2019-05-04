@@ -1,0 +1,220 @@
+---
+title: "TidyVerse Part 2"
+author: "Priya Shaji"
+date: "5/3/2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+## Tidyverse Assignment Part 2{.tabset}
+
+Expansion of `Santosh Cheruku's Black friday sales dataset.`
+
+Santosh Cheruku's exloratory data analysis and code on Black Friday sales can be found on the following github link:
+
+https://github.com/acatlin/SPRING2019TIDYVERSE/blob/master/Tidyverse_Mutate_functions.rmd
+
+The dataset here is a sample of the transactions made in a retail store. The store wants to know better the customer purchase behaviour against different products. Specifically, here the problem is a regression problem where we are trying to predict the dependent variable (the amount of purchase) with the help of the information contained in the other variables.
+
+Classification problem can also be settled in this dataset since several variables are categorical, and some other approaches could be "Predicting the age of the consumer" or even "Predict the category of goods bought". This dataset is also particularly convenient for clustering and maybe find different clusters of consumers within it.
+
+In this part 2 , I will focus on data clustering and grouping of the black friday sales by age and purchase of goods.
+
+### Load Data
+
+Fistly, we will load data and libraries
+
+```{r}
+library(tidyverse)
+library(DT)
+```
+
+Load the dataset
+
+```{r warning=FALSE}
+sales_df <- read.csv("https://raw.githubusercontent.com/san123i/CUNY/master/Semester1/607/Tidyverse_assignment_data/BlackFriday.csv")
+head(sales_df)
+```
+
+
+###  Exploratory Data Analysis
+
+Let's see total purchasers on black friday
+
+```{r}
+
+# total purchaser
+sales_df %>%
+distinct(User_ID) %>%
+nrow() %>%
+paste("buyers registered at Black Friday")
+
+
+```
+
+### Groups and Distributions{.tabset}
+
+#### Total Purchase Distribution
+
+Here the distribution of goods will be analyzed based on purchase.
+
+```{r} 
+#total purchase distribution
+sales_df %>%
+group_by(User_ID) %>%
+summarise(total_purchase = sum(Purchase)) %>%
+ggplot(aes(x = total_purchase)) + 
+geom_histogram(col = 'black', fill = 'blue', binwidth = 300000, center = 150000) +
+theme_linedraw() + 
+theme(panel.background = element_rect(fill = "gainsboro", colour = "white", size = 0.5, linetype = "solid"), #theme panel settings
+      plot.background = element_rect(fill = "gainsboro"), #theme panel settings
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "white"), #theme panel settings
+      panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "white"), #theme panel settings
+      plot.title = element_text(hjust = 0, face = 'bold',color = 'black'), #title settings
+      plot.subtitle = element_text(face = "italic")) + #subtitle settings
+labs(x = 'Dollars', y = 'Number of Buyers', title = "Black Friday", #name title and axis
+     subtitle = "Distribution of total purchasing by buyers") + #name subtitle
+scale_y_continuous(limits = c(0,2000), breaks = c(0,500,1000,1500,2000)) + #set axis limits and break
+scale_x_continuous(labels = scales::comma) #prevent scientific number in x-axis
+```
+
+
+#### Total Purchase by Product ID and Gender
+
+Here the distribution of goods will be analyzed based on  Product ID and Gender.
+
+```{r} 
+#total purchase distribution grouping by City and Gender
+sales_df %>%
+group_by(Product_ID, Gender) %>%
+summarise(total_purchase = sum(Purchase)) %>%
+ggplot(aes(x=Product_ID, y = total_purchase)) +
+geom_col(aes(fill = Gender)) +
+theme_linedraw() + 
+theme(legend.box.background	= element_rect(colour = "black"),
+      legend.background = element_rect(fill = "gainsboro"),
+      panel.background = element_rect(fill = "gainsboro", colour = "white", size = 0.5, linetype = "solid"), #theme panel settings
+      plot.background = element_rect(fill = "gainsboro"), #theme panel settings
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "white"), #theme panel settings
+      panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "white"), #theme panel settings
+      plot.title = element_text(hjust = 0, face = 'bold',color = 'black'), #title settings
+      plot.subtitle = element_text(face = "italic")) + #subtitle settings
+labs(x = 'Gender Category', y = 'Total Purchase (dollars)', title = "Black Friday", #name title and axis
+     subtitle = "Total purchasing each product by gender") + #name subtitle
+guides(fill=guide_legend(title = "Gender")) + #remove color legend
+scale_y_continuous(labels = scales::comma) #prevent scientific number in x-axis
+```
+
+
+#### Total Purchase by Gender{.tabset .tabset-fade .tabset-pills}
+
+Here the distribution of goods will be analyzed based on Gender.
+
+```{r} 
+#gender
+gender <- sales_df %>%
+          group_by(Gender) %>%
+          distinct(User_ID) %>%
+          summarise(Total=n())
+gender
+
+```
+
+#### Total Purchase by Age
+
+Here the distribution of goods will be analyzed based on Age.
+
+```{r} 
+#Age
+age <- sales_df %>%
+       group_by(Age) %>%
+       summarise(Total=n())
+age
+
+```
+
+
+
+### Data Clustering
+
+Clustering is a broad set of techniques for finding subgroups of observations within a data set. When we cluster observations, we 
+want observations in the same group to be similar and observations
+in different groups to be dissimilar. Because there isn’t a response variable, this is an unsupervised method, which implies that it seeks to find relationships between the n observations without being trained by a response variable. 
+
+```{r} 
+BlackFridayForClustering <- sales_df %>%
+                            select(Purchase)
+```
+
+#### Number of Cluster
+
+Determine the Number of Cluster
+
+```{r} 
+# Use map_dbl to run many models with varying value of k (centers)
+tot_withinss <- map_dbl(1:10,  function(k){
+  model <- kmeans(x = BlackFridayForClustering, centers = k)
+  model$tot.withinss
+})
+
+# Generate a data frame containing both k and tot_withinss
+elbow_df <- data.frame(
+  k = 1:10,
+  tot_withinss = tot_withinss
+)
+
+# Plot the elbow plot
+ggplot(elbow_df, aes(x = k, y = tot_withinss)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:10)
+```  
+
+#### Cluster Model
+
+```{r} 
+# Build a kmeans model
+model_km3 <- kmeans(BlackFridayForClustering, centers = 3)
+
+# Extract the cluster assignment vector from the kmeans model
+clust_km3 <- model_km3$cluster
+
+# Create a new dataframe appending the cluster assignment
+BlackFriday_Clust <- mutate(sales_df, cluster = clust_km3)
+
+# summarise the clustering
+BlackFriday_Clust_Note <- BlackFriday_Clust %>%
+                          group_by(cluster) %>%
+                          summarise(min_purchase = min(Purchase),
+                                   max_purchase = max(Purchase),
+                                   avg_purchase = round(mean(Purchase),0))
+```
+
+
+
+```{r} 
+# how many people in each cluster
+BlackFriday_Clust %>%
+group_by(Gender, cluster) %>%
+summarise(n = n()) %>%
+ggplot(aes(x=Gender, y = n)) +
+geom_col(aes(fill = as.factor(cluster))) +
+theme_linedraw() + 
+theme(legend.box.background	= element_rect(colour = "black"),
+      legend.background = element_rect(fill = "gainsboro"),
+      panel.background = element_rect(fill = "gainsboro", colour = "white", size = 0.5, linetype = "solid"), #theme panel settings
+      plot.background = element_rect(fill = "gainsboro"), #theme panel settings
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "white"), #theme panel settings
+      panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "white"), #theme panel settings
+      plot.title = element_text(hjust = 0, face = 'bold',color = 'black'), #title settings
+      plot.subtitle = element_text(face = "italic")) + #subtitle settings
+labs(x = 'Gender Category', y = 'Total Purchase (dollars)', title = "Black Friday", #name title and axis
+     subtitle = "Total people in each cluster by gender") + #name subtitle
+guides(fill=guide_legend(title = "Cluster")) + #remove color legend
+scale_y_continuous(labels = scales::comma) #prevent scientific number in x-axis
+```
+
+
+### Reference
+
+1. https://uc-r.github.io/kmeans_clustering
