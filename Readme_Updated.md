@@ -4,7 +4,6 @@ Part 2: http://rpubs.com/Priya_Shaji/tidyverse2
 
 Github Link : https://github.com/PriyaShaji/SPRING2019TIDYVERSE
 
-For Part 2 request submitted with pull request : 
 
 Tidyverse Assignment
 ================
